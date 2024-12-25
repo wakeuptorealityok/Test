@@ -9,10 +9,19 @@
     <h1>Club Trends Data</h1>
     <p>Data updates automatically every 30 seconds.</p>
     <pre id="output">Fetching data...</pre>
+    <button id="downloadButton">Download 91_club.txt</button>
 
     <script>
-        // Store the data globally so it can be accessed anywhere in the app
-        let clubData = null;
+        // Function to save trends data to a file (91_club.txt)
+        function saveTrendsData(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename; // Using the filename passed in the argument
+            link.click();
+            URL.revokeObjectURL(url);
+        }
 
         async function fetchClubTrendsData() {
             const maxAttempts = 5;
@@ -29,7 +38,7 @@
                         'Accept': 'application/json, text/plain, */*',
                         'Accept-Language': 'en-US,en;q=0.5',
                         'Content-Type': 'application/json;charset=UTF-8',
-                        'Authorization': 'Bearer <YOUR_TOKEN_HERE>', // Replace with your token
+                        'Authorization': 'Bearer <YOUR_TOKEN_HERE>',
                         'Origin': 'https://91clubin.in',
                         'Connection': 'keep-alive',
                         'Referer': 'https://91clubin.in/',
@@ -60,9 +69,10 @@
 
                     const data = await response.json();
                     document.getElementById('output').textContent = JSON.stringify(data, null, 2);
-                    
-                    // Store the fetched data
-                    clubData = data;
+
+                    // Save the fetched trends data to 91_club.txt
+                    saveTrendsData(data, '91_club.txt');
+
                     return data;
                 } catch (error) {
                     console.error(`Attempt ${attempt + 1} failed:`, error);
@@ -76,29 +86,15 @@
             }
         }
 
-        // Intercept requests to `/club.json` and return the JSON data
-        window.addEventListener('popstate', function(event) {
-            if (window.location.pathname === '/club.json' && clubData) {
-                // If the user navigates to `/club.json`, show the JSON data
-                document.getElementById('output').textContent = JSON.stringify(clubData, null, 2);
-            }
-        });
-
-        // Manually handle requests to `/club.json`
-        function handleClubJsonRequest() {
-            if (window.location.pathname === '/club.json') {
-                // Return the data as if it were coming from a JSON file
-                document.getElementById('output').textContent = JSON.stringify(clubData, null, 2);
-            }
-        }
-
         // Automatically fetch data every 30 seconds
         fetchClubTrendsData(); // Fetch immediately on load
         setInterval(fetchClubTrendsData, 30000); // Fetch every 30 seconds
 
-        // Handle the route change (like when navigating to `/club.json`)
-        handleClubJsonRequest(); // Immediately handle current path
-
+        // Allow the user to download the latest fetched data manually
+        document.getElementById('downloadButton').addEventListener('click', () => {
+            const data = JSON.parse(document.getElementById('output').textContent);
+            saveTrendsData(data, '91_club.txt');
+        });
     </script>
 </body>
 </html>
