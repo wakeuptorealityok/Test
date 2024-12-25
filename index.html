@@ -7,21 +7,13 @@
 </head>
 <body>
     <h1>Club Trends Data</h1>
-    <p>The data will be fetched every second and downloaded as <strong>club91.txt</strong>.</p>
+    <p>Data updates automatically every 30 seconds.</p>
     <pre id="output">Fetching data...</pre>
 
     <script>
-        // Function to trigger the download of data as a TXT file
-        function downloadTXT(data) {
-            const textContent = JSON.stringify(data, null, 2); // You can format the text here if needed
-            const blob = new Blob([textContent], { type: 'text/plain' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'club91.txt';
-            link.click();
-        }
+        // Store the data globally so it can be accessed anywhere in the app
+        let clubData = null;
 
-        // Function to fetch club trends data
         async function fetchClubTrendsData() {
             const maxAttempts = 5;
             const backoffTime = 1000; // In milliseconds
@@ -37,7 +29,7 @@
                         'Accept': 'application/json, text/plain, */*',
                         'Accept-Language': 'en-US,en;q=0.5',
                         'Content-Type': 'application/json;charset=UTF-8',
-                        'Authorization': 'Bearer <YOUR_TOKEN_HERE>',
+                        'Authorization': 'Bearer <YOUR_TOKEN_HERE>', // Replace with your token
                         'Origin': 'https://91clubin.in',
                         'Connection': 'keep-alive',
                         'Referer': 'https://91clubin.in/',
@@ -67,14 +59,11 @@
                     }
 
                     const data = await response.json();
-
-                    // Update the output area on the page
                     document.getElementById('output').textContent = JSON.stringify(data, null, 2);
-
-                    // Automatically download the data as TXT file
-                    downloadTXT(data);
-
-                    return;
+                    
+                    // Store the fetched data
+                    clubData = data;
+                    return data;
                 } catch (error) {
                     console.error(`Attempt ${attempt + 1} failed:`, error);
                     attempt++;
@@ -87,9 +76,29 @@
             }
         }
 
-        // Automatically fetch data every second
-        fetchClubTrendsData(); // Fetch immediately
-        setInterval(fetchClubTrendsData, 1000); // Fetch every second
+        // Intercept requests to `/club.json` and return the JSON data
+        window.addEventListener('popstate', function(event) {
+            if (window.location.pathname === '/club.json' && clubData) {
+                // If the user navigates to `/club.json`, show the JSON data
+                document.getElementById('output').textContent = JSON.stringify(clubData, null, 2);
+            }
+        });
+
+        // Manually handle requests to `/club.json`
+        function handleClubJsonRequest() {
+            if (window.location.pathname === '/club.json') {
+                // Return the data as if it were coming from a JSON file
+                document.getElementById('output').textContent = JSON.stringify(clubData, null, 2);
+            }
+        }
+
+        // Automatically fetch data every 30 seconds
+        fetchClubTrendsData(); // Fetch immediately on load
+        setInterval(fetchClubTrendsData, 30000); // Fetch every 30 seconds
+
+        // Handle the route change (like when navigating to `/club.json`)
+        handleClubJsonRequest(); // Immediately handle current path
+
     </script>
 </body>
 </html>
